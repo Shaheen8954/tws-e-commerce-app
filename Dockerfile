@@ -1,14 +1,21 @@
 # Stage 1: Development/Build Stage
 FROM node:18-alpine AS builder
 
-# Set working directory
+# Set working directory and create app directory
 WORKDIR /app
+
+# Create non-root user and set directory permissions
+RUN adduser -D -s /bin/sh umar && \
+    chown -R umar:umar /app
 
 # Install necessary build dependencies
 RUN apk add --no-cache python3 make g++
 
-# Copy package files
-COPY package*.json ./
+# Copy package files as root
+COPY --chown=umar:umar package*.json ./
+
+# Switch to the new user
+USER umar
 
 # Install dependencies
 RUN npm ci

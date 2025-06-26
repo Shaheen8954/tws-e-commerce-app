@@ -1,0 +1,57 @@
+---
+- name: Install and configure tools on Jenkins server
+  hosts: jenkins
+  become: yes
+  
+  tasks:
+    - name: Update apt package index
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+
+    - name: Install required system packages
+      apt:
+        name:
+          - openjdk-11-jdk
+          - maven
+          - git
+          - docker.io
+          - python3-pip
+          - unzip
+        state: present
+        update_cache: yes
+
+    - name: Install AWS CLI
+      shell: |
+        curl "https://awscli.amazonaws.com/awscli-exe-linux-$(uname -m).zip" -o "awscliv2.zip"
+        unzip awscliv2.zip
+        ./aws/install -i /usr/local/aws-cli -b /usr/local/bin
+        rm -rf aws awscliv2.zip
+      args:
+        creates: /usr/local/bin/aws
+
+    - name: Install kubectl
+      shell: |
+        curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+        chmod +x kubectl
+        sudo mv kubectl /usr/local/bin/
+      args:
+        creates: /usr/local/bin/kubectl
+
+    - name: Add jenkins user to docker group
+      user:
+        name: jenkins
+        groups: docker
+        append: yes
+
+    - name: Start and enable Docker service
+      service:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: Start and enable Jenkins service
+      service:
+        name: jenkins
+        state: started
+        enabled: yes
